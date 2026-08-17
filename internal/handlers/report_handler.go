@@ -38,14 +38,15 @@ func (h *ReportHandler) GetPerformanceReport(c *gin.Context) {
 	database.DB.Raw(`
 		SELECT 
 			d.id as doctor_id, 
-			d.first_name || ' ' || d.last_name as doctor_name,
+			u.first_name || ' ' || u.last_name as doctor_name,
 			COUNT(DISTINCT a.patient_id) as total_patients,
-			COALESCE(SUM(t.price), 0) as total_revenue
+			COALESCE(SUM(t.default_price), 0) as total_revenue
 		FROM doctors d
+		JOIN users u ON d.user_id = u.id
 		LEFT JOIN appointments a ON a.doctor_id = d.id AND a.status = 'completed' AND a.clinic_id = ?
 		LEFT JOIN treatments t ON a.treatment_id = t.id
 		WHERE d.clinic_id = ?
-		GROUP BY d.id, d.first_name, d.last_name
+		GROUP BY d.id, u.first_name, u.last_name
 	`, clinicID, clinicID).Scan(&docStats)
 
 	// 2. Tedavi istatistikleri (En çok hangi tedaviler uygulanmış)
@@ -78,7 +79,7 @@ func (h *ReportHandler) GetPerformanceReport(c *gin.Context) {
 	database.DB.Raw(`
 		SELECT 
 			TO_CHAR(a.start_time, 'Mon') as month,
-			SUM(t.price) as revenue
+			SUM(t.default_price) as revenue
 		FROM appointments a
 		JOIN treatments t ON a.treatment_id = t.id
 		WHERE a.status = 'completed' AND a.clinic_id = ? AND a.start_time >= ?

@@ -13,6 +13,7 @@ type Clinic struct {
 	WorkingHours string    `gorm:"type:varchar(100)" json:"working_hours"`
 	LogoURL      string    `gorm:"type:varchar(255)" json:"logo_url"`
 	LocationURL  string    `gorm:"type:varchar(255)" json:"location_url"`
+	IsActive     bool      `gorm:"default:true" json:"is_active"`
 
 	// Lokasyon Bilgileri
 	CityID       *uint     `json:"city_id"`

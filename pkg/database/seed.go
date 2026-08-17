@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"dentvisor-backend/internal/models"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // PHPMyAdmin Export Format structs
@@ -113,4 +114,33 @@ func SeedLocations() {
 	}
 
 	log.Println("Tüm 81 il ve ilçeleri veritabanına başarıyla eklendi!")
+}
+
+func SeedSuperadmin() {
+	var count int64
+	DB.Model(&models.User{}).Where("role = ?", "superadmin").Count(&count)
+	if count > 0 {
+		return // Superadmin already exists
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("superadmin123"), bcrypt.DefaultCost)
+	if err != nil {
+		log.Println("Superadmin şifresi oluşturulamadı:", err)
+		return
+	}
+
+	superadmin := models.User{
+		Email:        "superadmin@dentvisor.com",
+		PasswordHash: string(hashedPassword),
+		Role:         "superadmin",
+		FirstName:    "Sistem",
+		LastName:     "Yöneticisi",
+	}
+
+	if err := DB.Create(&superadmin).Error; err != nil {
+		log.Println("Superadmin hesabı oluşturulamadı:", err)
+		return
+	}
+
+	log.Println("Varsayılan superadmin hesabı oluşturuldu (superadmin@dentvisor.com / superadmin123)")
 }

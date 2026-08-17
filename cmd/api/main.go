@@ -19,6 +19,7 @@ func main() {
 
 	database.ConnectDB()
 	database.SeedLocations()
+	database.SeedSuperadmin()
 
 	r := gin.Default()
 
@@ -103,6 +104,7 @@ func main() {
 		}
 
 		patientHandler := handlers.NewPatientHandler()
+		paymentHandler := handlers.NewPaymentHandler()
 		patients := protected.Group("/patients")
 		patients.Use(middleware.RequireRole("doctor", "admin", "secretary"))
 		{
@@ -110,6 +112,10 @@ func main() {
 			patients.POST("", patientHandler.AddPatient)
 			patients.GET("/:id", patientHandler.GetPatientDetail)
 			patients.POST("/:id/dental-records", patientHandler.AddDentalRecord)
+			
+			// Payments
+			patients.GET("/:id/payments", paymentHandler.GetPatientPayments)
+			patients.POST("/:id/payments", paymentHandler.AddPayment)
 		}
 
 		appointmentHandler := handlers.NewAppointmentHandler()
@@ -121,7 +127,7 @@ func main() {
 			appointments.PUT("/:id/status", appointmentHandler.UpdateStatus)
 		}
 
-		// Sadece admin (doktor) görebilir
+		// Sadece admin (doktor) görebilir (Klinik Yöneticisi)
 		adminOnly := protected.Group("/admin")
 		adminOnly.Use(middleware.RequireRole("doctor"))
 		{
@@ -130,6 +136,15 @@ func main() {
 
 			automationHandler := handlers.NewAutomationHandler()
 			adminOnly.POST("/automations/reminders", automationHandler.TriggerReminders)
+		}
+
+		// Sadece superadmin (Sistem Yöneticisi) görebilir
+		systemOnly := protected.Group("/sistem")
+		systemOnly.Use(middleware.RequireRole("superadmin"))
+		{
+			systemHandler := handlers.NewSystemHandler()
+			systemOnly.GET("/clinics", systemHandler.GetClinics)
+			systemOnly.PUT("/clinics/:id/status", systemHandler.UpdateClinicStatus)
 		}
 	}
 
