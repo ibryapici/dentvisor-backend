@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"dentvisor-backend/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -28,4 +29,31 @@ func ConnectDB() {
 
 	DB = db
 	log.Println("PostgreSQL veritabanına başarıyla bağlanıldı!")
+
+	// Enable UUID extension
+	if err := DB.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`).Error; err != nil {
+		log.Println("UUID eklentisi oluşturulamadı:", err)
+	}
+
+	// GORM AutoMigrate: Modelleri veritabanı tablolarıyla senkronize eder
+	err = DB.AutoMigrate(
+		&models.City{},
+		&models.District{},
+		&models.Clinic{},
+		&models.User{},
+		&models.Doctor{},
+		&models.Patient{},
+		&models.Treatment{},
+		&models.Chair{},
+		&models.Review{},
+		&models.Article{},
+		&models.Appointment{},
+		&models.Payment{},
+		&models.DentalRecord{},
+	)
+	if err != nil {
+		log.Println("AutoMigrate hatası:", err)
+	} else {
+		log.Println("AutoMigrate başarıyla tamamlandı (Yeni modeller eklendi).")
+	}
 }

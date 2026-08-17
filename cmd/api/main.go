@@ -18,6 +18,7 @@ func main() {
 	}
 
 	database.ConnectDB()
+	database.SeedLocations()
 
 	r := gin.Default()
 
@@ -45,8 +46,18 @@ func main() {
 	// Public Routes
 	api := r.Group("/api")
 	{
-		api.POST("/auth/register", authHandler.RegisterDoctor)
-		api.POST("/auth/login", authHandler.Login)
+		auth := api.Group("/auth")
+		{
+			auth.POST("/register", authHandler.RegisterDoctor)
+			auth.POST("/login", authHandler.Login)
+		}
+
+		locationHandler := handlers.NewLocationHandler()
+		locations := api.Group("/locations")
+		{
+			locations.GET("/cities", locationHandler.GetCities)
+			locations.GET("/cities/:id/districts", locationHandler.GetDistrictsByCity)
+		}
 	}
 
 	// Protected Routes (Sadece giriş yapmış kullanıcılar)
@@ -63,13 +74,62 @@ func main() {
 			})
 		})
 
+		settingsHandler := handlers.NewSettingsHandler()
+		settings := protected.Group("/settings")
+		// Require admin or doctor for settings
+		settings.Use(middleware.RequireRole("doctor", "admin"))
+		{
+			settings.GET("/clinic", settingsHandler.GetClinicProfile)
+			settings.PUT("/clinic", settingsHandler.UpdateClinicProfile)
+
+			settings.GET("/doctors", settingsHandler.GetDoctors)
+
+			settings.GET("/treatments", settingsHandler.GetTreatments)
+			settings.POST("/treatments", settingsHandler.AddTreatment)
+
+			settings.GET("/chairs", settingsHandler.GetChairs)
+			settings.POST("/chairs", settingsHandler.AddChair)
+		}
+
+		contentHandler := handlers.NewContentHandler()
+		content := protected.Group("/content")
+		content.Use(middleware.RequireRole("doctor", "admin", "secretary"))
+		{
+			content.GET("/reviews", contentHandler.GetReviews)
+			content.PUT("/reviews/:id/status", contentHandler.UpdateReviewStatus)
+
+			content.GET("/articles", contentHandler.GetArticles)
+			content.POST("/articles", contentHandler.AddArticle)
+		}
+
+		patientHandler := handlers.NewPatientHandler()
+		patients := protected.Group("/patients")
+		patients.Use(middleware.RequireRole("doctor", "admin", "secretary"))
+		{
+			patients.GET("", patientHandler.GetPatients)
+			patients.POST("", patientHandler.AddPatient)
+			patients.GET("/:id", patientHandler.GetPatientDetail)
+			patients.POST("/:id/dental-records", patientHandler.AddDentalRecord)
+		}
+
+		appointmentHandler := handlers.NewAppointmentHandler()
+		appointments := protected.Group("/appointments")
+		appointments.Use(middleware.RequireRole("doctor", "admin", "secretary"))
+		{
+			appointments.GET("", appointmentHandler.GetAppointments)
+			appointments.POST("", appointmentHandler.AddAppointment)
+			appointments.PUT("/:id/status", appointmentHandler.UpdateStatus)
+		}
+
 		// Sadece admin (doktor) görebilir
 		adminOnly := protected.Group("/admin")
 		adminOnly.Use(middleware.RequireRole("doctor"))
 		{
-			adminOnly.GET("/reports", func(c *gin.Context) {
-				c.JSON(200, gin.H{"message": "Finansal raporlar - Sadece Doktor/Admin"})
-			})
+			reportHandler := handlers.NewReportHandler()
+			adminOnly.GET("/reports/performance", reportHandler.GetPerformanceReport)
+
+			automationHandler := handlers.NewAutomationHandler()
+			adminOnly.POST("/automations/reminders", automationHandler.TriggerReminders)
 		}
 	}
 
