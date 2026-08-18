@@ -43,6 +43,11 @@ func RequireAuth() gin.HandlerFunc {
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 			c.Set("userID", claims["sub"])
 			c.Set("role", claims["role"])
+			
+			if clinicID, exists := claims["clinic_id"]; exists {
+				c.Set("clinic_id", clinicID)
+			}
+			
 			c.Next()
 		} else {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token içeriği okunamadı"})

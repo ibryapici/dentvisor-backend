@@ -17,8 +17,14 @@ func NewSettingsHandler() *SettingsHandler {
 
 // Helper to get clinicID from token claims
 func getClinicID(c *gin.Context) (string, bool) {
-	// Need to get clinic_id from token if implemented, or find the user's clinic
-	// For MVP, since we added it to claims, we'll try to get it.
+	// First check context (set by middleware from claims)
+	if clinicID, exists := c.Get("clinic_id"); exists {
+		if id, ok := clinicID.(string); ok {
+			return id, true
+		}
+	}
+	
+	// Fallback to query database using userID if not in claims
 	userID, exists := c.Get("userID")
 	if !exists {
 		return "", false

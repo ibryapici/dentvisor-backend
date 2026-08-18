@@ -19,6 +19,7 @@ type Appointment struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 
 	// Relationships
+	Clinic    *Clinic   `gorm:"foreignKey:ClinicID" json:"clinic,omitempty"`
 	Patient   Patient   `gorm:"foreignKey:PatientID" json:"patient"`
 	Doctor    Doctor    `gorm:"foreignKey:DoctorID" json:"doctor"`
 	Treatment Treatment `gorm:"foreignKey:TreatmentID" json:"treatment"`

@@ -143,8 +143,24 @@ func main() {
 		systemOnly.Use(middleware.RequireRole("superadmin"))
 		{
 			systemHandler := handlers.NewSystemHandler()
+			systemOnly.GET("/dashboard", systemHandler.GetDashboardStats)
 			systemOnly.GET("/clinics", systemHandler.GetClinics)
+			systemOnly.PUT("/clinics/:id", systemHandler.UpdateClinic)
 			systemOnly.PUT("/clinics/:id/status", systemHandler.UpdateClinicStatus)
+			systemOnly.POST("/impersonate", systemHandler.Impersonate)
+			systemOnly.GET("/patients", systemHandler.GetAllPatients)
+			systemOnly.GET("/appointments", systemHandler.GetAllAppointments)
+
+			// Location Management
+			systemOnly.GET("/locations/cities", systemHandler.GetSystemCities)
+			systemOnly.POST("/locations/cities", systemHandler.CreateCity)
+			systemOnly.PUT("/locations/cities/:id", systemHandler.UpdateCity)
+			systemOnly.DELETE("/locations/cities/:id", systemHandler.DeleteCity)
+
+			systemOnly.GET("/locations/cities/:cityId/districts", systemHandler.GetSystemDistricts)
+			systemOnly.POST("/locations/cities/:cityId/districts", systemHandler.CreateDistrict)
+			systemOnly.PUT("/locations/districts/:id", systemHandler.UpdateDistrict)
+			systemOnly.DELETE("/locations/districts/:id", systemHandler.DeleteDistrict)
 		}
 	}
 

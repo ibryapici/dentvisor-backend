@@ -20,6 +20,7 @@ type Patient struct {
 
 	// Relationships
 	User          *User           `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Clinic        *Clinic         `gorm:"foreignKey:ClinicID" json:"clinic,omitempty"`
 	Appointments  []Appointment   `gorm:"foreignKey:PatientID" json:"appointments"`
 	Reviews       []Review        `gorm:"foreignKey:PatientID" json:"reviews"`
 	DentalRecords []DentalRecord  `gorm:"foreignKey:PatientID" json:"dental_records"`

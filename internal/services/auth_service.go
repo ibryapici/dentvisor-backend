@@ -108,3 +108,36 @@ func (s *AuthService) Login(req models.LoginRequest) (string, *models.User, erro
 
 	return tokenString, user, nil
 }
+
+func (s *AuthService) ImpersonateClinic(clinicID string) (string, *models.User, error) {
+	// Kliniğin asıl sahibini (ilk doktor/admin) bulalım
+	var user models.User
+	err := database.DB.Where("clinic_id = ? AND role IN ?", clinicID, []string{"doctor", "admin"}).Order("created_at asc").First(&user).Error
+	
+	if err != nil {
+		// Klinik sahibi yoksa, sadece Impersonation token'ı üretelim (sanal kullanıcı)
+		user = models.User{
+			ID: "superadmin-virtual",
+			Role: "admin",
+			ClinicID: &clinicID,
+			FirstName: "Sistem",
+			LastName: "Yöneticisi",
+		}
+	}
+
+	claims := jwt.MapClaims{
+		"sub":       user.ID,
+		"role":      user.Role,
+		"clinic_id": clinicID,
+		"is_impersonated": true, // Frontend'in bunu anlaması için
+		"exp":       time.Now().Add(time.Hour * 1).Unix(), // Kısa süreli token
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	if err != nil {
+		return "", nil, err
+	}
+
+	return tokenString, &user, nil
+}
