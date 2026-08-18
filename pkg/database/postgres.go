@@ -50,6 +50,13 @@ func ConnectDB() {
 		&models.Appointment{},
 		&models.Payment{},
 		&models.DentalRecord{},
+		&models.TreatmentPlan{},
+		&models.TreatmentPlanItem{},
+		&models.Laboratory{},
+		&models.LabOrder{},
+		&models.WhatsappSetting{},
+		&models.WhatsappMessageLog{},
+		&models.DoctorPayout{},
 	)
 	if err != nil {
 		log.Println("AutoMigrate hatası:", err)

@@ -59,6 +59,14 @@ func main() {
 			locations.GET("/cities", locationHandler.GetCities)
 			locations.GET("/cities/:id/districts", locationHandler.GetDistrictsByCity)
 		}
+
+		publicHandler := handlers.NewPublicHandler()
+		public := api.Group("/public")
+		{
+			public.GET("/clinics", publicHandler.GetClinics)
+			public.GET("/clinics/:id", publicHandler.GetClinicDetail)
+			public.POST("/clinics/:id/claim", publicHandler.ClaimClinic)
+		}
 	}
 
 	// Protected Routes (Sadece giriş yapmış kullanıcılar)
@@ -105,6 +113,7 @@ func main() {
 
 		patientHandler := handlers.NewPatientHandler()
 		paymentHandler := handlers.NewPaymentHandler()
+		treatmentPlanHandler := handlers.NewTreatmentPlanHandler()
 		patients := protected.Group("/patients")
 		patients.Use(middleware.RequireRole("doctor", "admin", "secretary"))
 		{
@@ -116,6 +125,13 @@ func main() {
 			// Payments
 			patients.GET("/:id/payments", paymentHandler.GetPatientPayments)
 			patients.POST("/:id/payments", paymentHandler.AddPayment)
+
+			// Treatment Plans & Quotations
+			patients.GET("/:id/treatment-plans", treatmentPlanHandler.GetPatientTreatmentPlans)
+			patients.POST("/:id/treatment-plans", treatmentPlanHandler.CreateTreatmentPlan)
+			patients.GET("/:id/treatment-plans/:planId", treatmentPlanHandler.GetTreatmentPlanDetail)
+			patients.PUT("/:id/treatment-plans/:planId/status", treatmentPlanHandler.UpdateTreatmentPlanStatus)
+			patients.DELETE("/:id/treatment-plans/:planId", treatmentPlanHandler.DeleteTreatmentPlan)
 		}
 
 		appointmentHandler := handlers.NewAppointmentHandler()
@@ -127,12 +143,46 @@ func main() {
 			appointments.PUT("/:id/status", appointmentHandler.UpdateStatus)
 		}
 
+		labHandler := handlers.NewLabHandler()
+		labs := protected.Group("")
+		labs.Use(middleware.RequireRole("doctor", "admin", "secretary"))
+		{
+			// Laboratories
+			labs.GET("/laboratories", labHandler.GetLaboratories)
+			labs.POST("/laboratories", labHandler.CreateLaboratory)
+			labs.PUT("/laboratories/:id", labHandler.UpdateLaboratory)
+			labs.DELETE("/laboratories/:id", labHandler.DeleteLaboratory)
+
+			// Lab Orders
+			labs.GET("/lab-orders", labHandler.GetLabOrders)
+			labs.POST("/lab-orders", labHandler.CreateLabOrder)
+			labs.PUT("/lab-orders/:id/status", labHandler.UpdateLabOrderStatus)
+			labs.PUT("/lab-orders/:id", labHandler.UpdateLabOrder)
+			labs.DELETE("/lab-orders/:id", labHandler.DeleteLabOrder)
+
+			// WhatsApp & AI Chatbot
+			whatsappHandler := handlers.NewWhatsappHandler()
+			labs.GET("/whatsapp/status", whatsappHandler.GetStatus)
+			labs.POST("/whatsapp/connect", whatsappHandler.StartConnect)
+			labs.POST("/whatsapp/confirm-scan", whatsappHandler.ConfirmScan)
+			labs.POST("/whatsapp/disconnect", whatsappHandler.Disconnect)
+			labs.PUT("/whatsapp/settings", whatsappHandler.UpdateSettings)
+			labs.GET("/whatsapp/logs", whatsappHandler.GetMessageLogs)
+			labs.POST("/whatsapp/send", whatsappHandler.SendMessage)
+			labs.POST("/whatsapp/simulate-incoming", whatsappHandler.SimulateIncoming)
+			labs.POST("/whatsapp/ai-generate-reminder", whatsappHandler.GenerateAiReminder)
+		}
+
 		// Sadece admin (doktor) görebilir (Klinik Yöneticisi)
 		adminOnly := protected.Group("/admin")
 		adminOnly.Use(middleware.RequireRole("doctor"))
 		{
 			reportHandler := handlers.NewReportHandler()
 			adminOnly.GET("/reports/performance", reportHandler.GetPerformanceReport)
+			adminOnly.GET("/reports/doctor-commissions", reportHandler.GetDoctorCommissions)
+			adminOnly.PUT("/reports/doctors/:id/commission", reportHandler.UpdateDoctorCommission)
+			adminOnly.POST("/reports/doctor-payouts", reportHandler.CreateDoctorPayout)
+			adminOnly.GET("/reports/doctor-payouts", reportHandler.GetDoctorPayouts)
 
 			automationHandler := handlers.NewAutomationHandler()
 			adminOnly.POST("/automations/reminders", automationHandler.TriggerReminders)
