@@ -81,13 +81,13 @@ func (s *AuthService) RegisterDoctor(req models.RegisterRequest) (*models.User, 
 }
 
 func (s *AuthService) Login(req models.LoginRequest) (string, *models.User, error) {
-	user, err := s.userRepo.FindByEmail(req.Email)
+	user, err := s.userRepo.FindByEmailOrPhone(req.Email)
 	if err != nil {
-		return "", nil, errors.New("geçersiz e-posta veya şifre")
+		return "", nil, errors.New("geçersiz e-posta / telefon veya şifre")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		return "", nil, errors.New("geçersiz e-posta veya şifre")
+		return "", nil, errors.New("geçersiz e-posta / telefon veya şifre")
 	}
 
 	claims := jwt.MapClaims{

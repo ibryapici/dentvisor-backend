@@ -20,6 +20,7 @@ func main() {
 	database.ConnectDB()
 	database.SeedLocations()
 	database.SeedSuperadmin()
+	database.SeedDemoData()
 
 	r := gin.Default()
 
@@ -92,12 +93,19 @@ func main() {
 			settings.PUT("/clinic", settingsHandler.UpdateClinicProfile)
 
 			settings.GET("/doctors", settingsHandler.GetDoctors)
+			settings.POST("/doctors", settingsHandler.AddDoctor)
+			settings.PUT("/doctors/:id", settingsHandler.UpdateDoctor)
+			settings.DELETE("/doctors/:id", settingsHandler.DeleteDoctor)
 
 			settings.GET("/treatments", settingsHandler.GetTreatments)
 			settings.POST("/treatments", settingsHandler.AddTreatment)
+			settings.PUT("/treatments/:id", settingsHandler.UpdateTreatment)
+			settings.DELETE("/treatments/:id", settingsHandler.DeleteTreatment)
 
 			settings.GET("/chairs", settingsHandler.GetChairs)
 			settings.POST("/chairs", settingsHandler.AddChair)
+			settings.PUT("/chairs/:id", settingsHandler.UpdateChair)
+			settings.DELETE("/chairs/:id", settingsHandler.DeleteChair)
 		}
 
 		contentHandler := handlers.NewContentHandler()
@@ -140,7 +148,9 @@ func main() {
 		{
 			appointments.GET("", appointmentHandler.GetAppointments)
 			appointments.POST("", appointmentHandler.AddAppointment)
-			appointments.PUT("/:id/status", appointmentHandler.UpdateStatus)
+			appointments.PUT("/:id", appointmentHandler.UpdateAppointment)
+			appointments.PUT("/:id/status", appointmentHandler.UpdateAppointment)
+			appointments.DELETE("/:id", appointmentHandler.DeleteAppointment)
 		}
 
 		labHandler := handlers.NewLabHandler()
@@ -170,7 +180,21 @@ func main() {
 			labs.GET("/whatsapp/logs", whatsappHandler.GetMessageLogs)
 			labs.POST("/whatsapp/send", whatsappHandler.SendMessage)
 			labs.POST("/whatsapp/simulate-incoming", whatsappHandler.SimulateIncoming)
-			labs.POST("/whatsapp/ai-generate-reminder", whatsappHandler.GenerateAiReminder)
+		}
+
+		// Patient Portal Endpoints (Hasta ve Doktor erişebilir)
+		patientGroup := protected.Group("/patient")
+		patientGroup.Use(middleware.RequireRole("patient", "doctor", "admin"))
+		{
+			patientPortalHandler := handlers.NewPatientPortalHandler()
+			patientGroup.GET("/me", patientPortalHandler.GetPatientDashboard)
+			patientGroup.POST("/appointments", patientPortalHandler.CreatePatientAppointment)
+			patientGroup.POST("/treatment-plans/:planId/accept", patientPortalHandler.AcceptTreatmentPlan)
+			patientGroup.POST("/consents/:id/respond", patientPortalHandler.RespondConsent)
+
+			// Doctor endpoints for patient cross-clinic consent
+			protected.POST("/patients/:id/request-history-consent", patientPortalHandler.RequestHistoryConsent)
+			protected.GET("/patients/:id/consultation-history", patientPortalHandler.GetConsultationDentalHistory)
 		}
 
 		// Sadece admin (doktor) görebilir (Klinik Yöneticisi)
@@ -183,6 +207,12 @@ func main() {
 			adminOnly.PUT("/reports/doctors/:id/commission", reportHandler.UpdateDoctorCommission)
 			adminOnly.POST("/reports/doctor-payouts", reportHandler.CreateDoctorPayout)
 			adminOnly.GET("/reports/doctor-payouts", reportHandler.GetDoctorPayouts)
+
+			// Route aliases for protected/reports
+			protected.GET("/reports/doctor-commissions", reportHandler.GetDoctorCommissions)
+			protected.PUT("/reports/doctors/:id/commission", reportHandler.UpdateDoctorCommission)
+			protected.POST("/reports/doctor-payouts", reportHandler.CreateDoctorPayout)
+			protected.GET("/reports/doctor-payouts", reportHandler.GetDoctorPayouts)
 
 			automationHandler := handlers.NewAutomationHandler()
 			adminOnly.POST("/automations/reminders", automationHandler.TriggerReminders)

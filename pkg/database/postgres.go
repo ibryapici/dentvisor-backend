@@ -57,6 +57,7 @@ func ConnectDB() {
 		&models.WhatsappSetting{},
 		&models.WhatsappMessageLog{},
 		&models.DoctorPayout{},
+		&models.PatientConsent{},
 	)
 	if err != nil {
 		log.Println("AutoMigrate hatası:", err)
