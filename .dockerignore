@@ -1,0 +1,9 @@
+.git
+.gitignore
+.env
+.env.*
+*.log
+bin/
+api
+tmp/
+*.tar.gz

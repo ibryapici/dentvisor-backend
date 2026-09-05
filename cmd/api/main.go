@@ -17,16 +17,35 @@ func main() {
 		log.Println("Bilgi: .env dosyası bulunamadı, sistem çevre değişkenleri kullanılacak")
 	}
 
+	// JWT Secret kontrolü
+	if os.Getenv("JWT_SECRET") == "" {
+		log.Println("UYARI: JWT_SECRET çevre değişkeni tanımlı değil! Varsayılan geliştirme anahtarı kullanılıyor. Canlı ortamda MUTLAKA güvenli bir anahtar belirleyiniz.")
+		os.Setenv("JWT_SECRET", "dentvisor-fallback-development-secret-key-change-me")
+	}
+
 	database.ConnectDB()
 	database.SeedLocations()
 	database.SeedSuperadmin()
-	database.SeedDemoData()
+
+	// Demo verileri sadece geliştirme ortamında veya açıkça talep edildiğinde yükle
+	appEnv := os.Getenv("APP_ENV")
+	seedDemo := os.Getenv("SEED_DEMO")
+	if appEnv != "production" || seedDemo == "true" {
+		database.SeedDemoData()
+	} else {
+		log.Println("Canlı (production) modda çalışılıyor: Demo verileri yükleme atlandı.")
+	}
 
 	r := gin.Default()
 
-	// CORS Ayarları (Basit haliyle)
+	// CORS Ayarları: Gelen Origin'i yansıtarak Credentials: true çakışmasını engelle
 	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := c.Request.Header.Get("Origin")
+		if origin != "" {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		} else {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		}
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
@@ -67,6 +86,8 @@ func main() {
 			public.GET("/clinics", publicHandler.GetClinics)
 			public.GET("/clinics/:id", publicHandler.GetClinicDetail)
 			public.POST("/clinics/:id/claim", publicHandler.ClaimClinic)
+			public.GET("/clinics/:id/slots", publicHandler.GetSlots)
+			public.POST("/clinics/:id/appointments", publicHandler.CreatePublicAppointment)
 		}
 	}
 
@@ -117,6 +138,8 @@ func main() {
 
 			content.GET("/articles", contentHandler.GetArticles)
 			content.POST("/articles", contentHandler.AddArticle)
+			content.PUT("/articles/:id", contentHandler.UpdateArticle)
+			content.DELETE("/articles/:id", contentHandler.DeleteArticle)
 		}
 
 		patientHandler := handlers.NewPatientHandler()

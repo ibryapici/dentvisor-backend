@@ -123,14 +123,25 @@ func SeedSuperadmin() {
 		return // Superadmin already exists
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("superadmin123"), bcrypt.DefaultCost)
+	adminEmail := os.Getenv("SUPERADMIN_EMAIL")
+	if adminEmail == "" {
+		adminEmail = "superadmin@dentvisor.com"
+	}
+
+	adminPassword := os.Getenv("SUPERADMIN_PASSWORD")
+	if adminPassword == "" {
+		adminPassword = "superadmin123"
+		log.Println("GÜVENLİK UYARISI: SUPERADMIN_PASSWORD çevre değişkeni tanımlı değil, varsayılan şifre kullanıldı.")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)
 	if err != nil {
 		log.Println("Superadmin şifresi oluşturulamadı:", err)
 		return
 	}
 
 	superadmin := models.User{
-		Email:        "superadmin@dentvisor.com",
+		Email:        adminEmail,
 		PasswordHash: string(hashedPassword),
 		Role:         "superadmin",
 		FirstName:    "Sistem",
@@ -142,5 +153,5 @@ func SeedSuperadmin() {
 		return
 	}
 
-	log.Println("Varsayılan superadmin hesabı oluşturuldu (superadmin@dentvisor.com / superadmin123)")
+	log.Printf("Superadmin hesabı oluşturuldu (%s)\n", adminEmail)
 }
